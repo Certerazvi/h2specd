@@ -47,7 +47,7 @@ func testCaseMaxFrameSize(w http.ResponseWriter, r *http.Request) {
 
 func main() {
 	http.HandleFunc("/", hello)
-	http.HandleFunc("/3.5", testCaseMaxFrameSize);
+	http.HandleFunc("/4.2", testCaseMaxFrameSize);
 
 	s := &http.Server{
 		Addr:           PORT,
