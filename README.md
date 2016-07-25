@@ -23,9 +23,9 @@ The source code is based on the net/http golang library, which was modified in c
 
 Known issues are that the test cases:
 
-testCaseIllegalFrameSentWhileIdle,
-testCaseSelfDependingPriorityFrame,
-testCaseIllegalSizeRST_STREAM,
-testCaseNonZeroLengthAckSettingFrame
+* testCaseIllegalFrameSentWhileIdle
+* testCaseSelfDependingPriorityFrame
+* testCaseIllegalSizeRST_STREAM
+* testCaseNonZeroLengthAckSettingFrame
 
 do not seem to function as they should when checking them through Wireshark. No GOAWAY frame is received or a different error than the one expected and specified in RFC 7540. These are results from trying the latest version of the Chrome browser.
