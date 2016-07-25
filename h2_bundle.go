@@ -3359,7 +3359,7 @@ func (sc *http2serverConn) serve() {
 
 	var frameSize uint32
 
-	fmt.Printf(strconv.Itoa(int(TestNo)))
+	//fmt.Printf(strconv.Itoa(int(TestNo)))
 
 	if TestNo == PrefaceTestCase {
 		frameSize = 19777215  // invalid frame size value
