@@ -3,7 +3,7 @@ A testing tool for HTTP2 browser implementation.
 
 ### BINARY FILE:
 
-Can be found in the Releases section, with the name “h2specd”.
+Can be found in the Releases section, with the name "h2specd” and followed by the OS and architecture it is destined for. Download the one suitable for you.
 
 ### INSTRUCTIONS:
 
