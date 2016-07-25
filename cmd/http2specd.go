@@ -7,7 +7,7 @@ import (
 	"h2specd"
 	"net"
 	"fmt"
-	"h2specd/golang_net/http2/hpack"
+	"golang.org/x/net/http2/hpack"
 )
 
 const (
