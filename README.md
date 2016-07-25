@@ -28,4 +28,4 @@ Known issues are that the test cases:
 * testCaseIllegalSizeRST_STREAM
 * testCaseNonZeroLengthAckSettingFrame
 
-do not seem to function as they should when checking them through Wireshark. No GOAWAY frame is received or a different error than the one expected and specified in RFC 7540. These are results from trying the latest version of the Chrome browser.
+do not seem to function as they should when checking them through Wireshark. No GOAWAY frame or a different error than the one expected and specified in RFC 7540 is received. These are results from trying the latest version of the Chrome browser.
