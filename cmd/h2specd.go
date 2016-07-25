@@ -26,6 +26,12 @@ func switchManager(w h2specd.ResponseWriter, r *h2specd.Request) {
 	h2specd.ListenerForServer.Close()
 }
 
+func printAddress(sectionNo string) {
+
+	fmt.Printf("https://localhost:443/" + sectionNo + "\n")
+
+}
+
 func pair(name, value string) hpack.HeaderField {
 	return hpack.HeaderField{Name: name, Value: value}
 }
@@ -275,23 +281,41 @@ func testCaseWindowFrameWithZeroFlowControlWindowInc(w h2specd.ResponseWriter,
 
 func main() {
 
+	fmt.Printf("The following addresses are available: \n")
+
 	h2specd.HandleFunc("/", hello)
 	h2specd.HandleFunc("/3.5", testCasePreface) // checked √
+	printAddress("3.5")
 	h2specd.HandleFunc("/4.3", testCaseInvalidHeaderBlock) // checked √
+	printAddress("4.3")
 	h2specd.HandleFunc("/5.1", testCaseIllegalFrameSentWhileIdle)
+	//printAddress("5.1")
 	h2specd.HandleFunc("/5.3", testCaseSelfDependingPriorityFrame)
+	//printAddress("5.3")
 	h2specd.HandleFunc("/5.4", testCaseGoAwayFrameFollowedByClosedConnection) // checked √
+	printAddress("5.4")
 	h2specd.HandleFunc("/5.5", testCaseDiscardingUnknownFrames) // checked √
+	printAddress("5.5")
 	h2specd.HandleFunc("/6.1", testCaseDataFrameWith0x0StreamIndentifier) // checked √
+	printAddress("6.1")
 	h2specd.HandleFunc("/6.4.1", testCaseRST_STREAMFrame0x0Ident) // checked √
+	printAddress("6.4.1")
 	h2specd.HandleFunc("/6.4.2", testCaseIllegalSizeRST_STREAM)
+	//printAddress("6.4.2")
 	h2specd.HandleFunc("/6.5.1", testCaseSettingsAck) // checked √
+	printAddress("6.5.1")
 	h2specd.HandleFunc("/6.5.2", testCaseNonZeroLengthAckSettingFrame)
+	//printAddress("6.5.2")
 	h2specd.HandleFunc("/6.7.1", testCaseReceivingPingFrame) // checked √
+	printAddress("6.7.1")
 	h2specd.HandleFunc("/6.7.2", testCasePingWithNonZeroIdent) // checked √
+	printAddress("6.7.2")
 	h2specd.HandleFunc("/6.7.3", testCasePingWithLengthDiffFromEight) // checked √
+	printAddress("6.7.3")
 	h2specd.HandleFunc("/6.8", testCaseGoAwayWithStreamIdentNonZero) // checked √
+	printAddress("6.8")
 	h2specd.HandleFunc("/6.9", testCaseWindowFrameWithZeroFlowControlWindowInc) // checked √
+	printAddress("6.9")
 	h2specd.HandleFunc("/RUN_TEST", runTestCase)
 
 	s := &h2specd.Server{
