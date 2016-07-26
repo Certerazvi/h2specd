@@ -3102,13 +3102,13 @@ func (sc *http2serverConn) readFrames() {
 	for {
 		f, err := sc.framer.ReadFrame()
 
-		if TestNo == SettingsACKTestCase {
+		switch TestNo {
+		case SettingsACKTestCase:
 
 			if err != nil {
 				opErr, ok := err.(*net.OpError)
 				if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
 					fmt.Printf("Test case FAILED! \n")
-					//TestNo = Default
 				}
 			}
 
@@ -3116,14 +3116,12 @@ func (sc *http2serverConn) readFrames() {
 			case *http2SettingsFrame:
 				if frame.IsAck() {
 					fmt.Printf("Test case PASSED! \n")
-					//TestNo = Default
 				}
 			case *http2GoAwayFrame:
 				fmt.Printf("Test case FAILED! \n")
-				//TestNo = Default
 			}
 
-		} else if TestNo == DiscardingUnknownFramesTestCase {
+		case DiscardingUnknownFramesTestCase:
 
 			if err != nil {
 				opErr, ok := err.(*net.OpError)
@@ -3140,8 +3138,7 @@ func (sc *http2serverConn) readFrames() {
 			case *http2GoAwayFrame:
 				fmt.Printf("Test case FAILED! \n ")
 			}
-
-		} else if TestNo == CloseConnAfterGoAwayFrameTestCase {
+		case CloseConnAfterGoAwayFrameTestCase:
 
 			if err != nil {
 				opErr, ok := err.(*net.OpError)
@@ -3160,38 +3157,7 @@ func (sc *http2serverConn) readFrames() {
 				}
 			}
 
-
-		} else if TestNo == PrefaceTestCase {
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-		} else if TestNo == GoAwayWithNonZeroStreamIdentTestCase {
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-		} else if TestNo == ZeroFlowControlWindowIncrementTestCase {
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-		} else if TestNo == PingFrameWithLengthDiffFromEightTestCase {
+		case PingFrameWithLengthDiffFromEightTestCase:
 
 			switch frame := f.(type) {
 			case *http2GoAwayFrame:
@@ -3202,7 +3168,12 @@ func (sc *http2serverConn) readFrames() {
 				}
 			}
 
-		} else if TestNo == NonZeroIdentPingFrameTestCase {
+		case 	NonZeroIdentPingFrameTestCase,
+			RST_FRAMEWith0x0StreamIdentTestCase,
+			DataFrameWith0x0StreamIdentTestCase,
+			ZeroFlowControlWindowIncrementTestCase,
+			GoAwayWithNonZeroStreamIdentTestCase,
+			PrefaceTestCase:
 
 			switch frame := f.(type) {
 			case *http2GoAwayFrame:
@@ -3213,7 +3184,8 @@ func (sc *http2serverConn) readFrames() {
 				}
 			}
 
-		} else if TestNo == InvalidHeaderTestCase {
+		case InvalidHeaderTestCase:
+
 			switch frame := f.(type) {
 
 			case *http2GoAwayFrame:
@@ -3224,19 +3196,9 @@ func (sc *http2serverConn) readFrames() {
 				}
 
 			}
-		}  else if TestNo == DataFrameWith0x0StreamIdentTestCase {
 
-			switch frame := f.(type) {
+		case IllegalRST_STREAMFrameWhileIdleTestCase:
 
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-		} else if TestNo == IllegalRST_STREAMFrameWhileIdleTestCase {
 			switch frame := f.(type) {
 
 			case *http2GoAwayFrame:
@@ -3248,18 +3210,9 @@ func (sc *http2serverConn) readFrames() {
 			case *http2RSTStreamFrame:
 				fmt.Printf("Seems that it passed! \n")
 			}
-		} else if TestNo == RST_FRAMEWith0x0StreamIdentTestCase {
 
-			switch frame := f.(type) {
 
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-		} else if TestNo == PingFrameReplyTestCase {
+		case PingFrameReplyTestCase:
 
 			if err != nil {
 				opErr, ok := err.(*net.OpError)
@@ -3276,6 +3229,7 @@ func (sc *http2serverConn) readFrames() {
 			case *http2GoAwayFrame:
 				fmt.Printf("Test case FAILED! \n")
 			}
+
 		}
 
 		select {
