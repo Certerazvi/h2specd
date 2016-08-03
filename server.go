@@ -2233,7 +2233,8 @@ func ListenAndServeTLS(addr, certFile, keyFile string, handler Handler) error {
 	return server.ListenAndServeTLS(certFile, keyFile)
 }
 
-var ListenerForServer net.Listener
+var ListenerForTestServer 	net.Listener
+var ListenerForRunningServer 	net.Listener
 
 // ListenAndServeTLS listens on the TCP network address srv.Addr and
 // then calls Serve to handle requests on incoming TLS connections.
@@ -2282,8 +2283,12 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 	}
 
 	tlsListener := tls.NewListener(tcpKeepAliveListener{ln.(*net.TCPListener)}, config)
+
+
 	if addr == ":443" {
-		ListenerForServer = tlsListener
+		ListenerForTestServer = tlsListener
+	} else if addr == ":1443" {
+		ListenerForRunningServer = tlsListener
 	}
 	//go func() {
 	//	for TerminateListener != true {

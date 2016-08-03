@@ -42,6 +42,27 @@ import (
 	"syscall"
 )
 
+type TestResult struct {
+
+	Preface bool
+	InvalidHeader bool
+	IllegalRST_STREAMWhileIdle bool
+	SelfDependingPriority bool
+	CloseConnAfterGoAway bool
+	DiscardingUnknownFrame bool
+	DataFrameWith0x0StreamIdent bool
+	RST_FRAMEWith0x0StreamIdent bool
+	SettingsACK bool
+	PingFrameReply bool
+	NonZeroIdentPingFrame bool
+	PingFrameWithNonEightLength bool
+	GoAwayWithNonZeroStreamIdent bool
+	ZeroFlowControlWindowInc bool
+}
+
+var Result TestResult
+var NoTestsPassed int
+
 var TestNo uint32
 
 const (
@@ -3089,6 +3110,7 @@ type http2readFrameResult struct {
 }
 
 var SentData [8]byte
+var Done bool
 
 // readFrames is the loop that reads incoming frames.
 // It takes care to only read one frame at a time, blocking until the
@@ -3101,135 +3123,209 @@ func (sc *http2serverConn) readFrames() {
 
 	for {
 		f, err := sc.framer.ReadFrame()
+		if strings.Contains(sc.conn.LocalAddr().String(), ":443") ||
+		   strings.Contains(sc.conn.LocalAddr().String(), ":1443") {
 
-		switch TestNo {
-		case SettingsACKTestCase:
+			switch TestNo {
+			case SettingsACKTestCase:
 
-			if err != nil {
-				opErr, ok := err.(*net.OpError)
-				if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-			switch frame := f.(type) {
-			case *http2SettingsFrame:
-				if frame.IsAck() {
-					fmt.Printf("Test case PASSED! \n")
-				}
-			case *http2GoAwayFrame:
-				fmt.Printf("Test case FAILED! \n")
-			}
-
-		case DiscardingUnknownFramesTestCase:
-
-			if err != nil {
-				opErr, ok := err.(*net.OpError)
-				if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-			switch frame := f.(type) {
-			case *http2PingFrame:
-				if frame.http2FrameHeader.Flags.Has(http2FlagPingAck) {
-					fmt.Printf("Test case PASSED! \n")
-				}
-			case *http2GoAwayFrame:
-				fmt.Printf("Test case FAILED! \n ")
-			}
-		case CloseConnAfterGoAwayFrameTestCase:
-
-			if err != nil {
-				opErr, ok := err.(*net.OpError)
-				if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
-					if goaway {
-						fmt.Printf("Test case PASSED! \n")
-					} else {
+				if err != nil {
+					opErr, ok := err.(*net.OpError)
+					if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
 						fmt.Printf("Test case FAILED! \n")
+						Result.SettingsACK = false
+						Done = true
 					}
 				}
-			}
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					goaway = true
-				}
-			}
 
-		case PingFrameWithLengthDiffFromEightTestCase:
-
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeFrameSize {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
+				switch frame := f.(type) {
+				case *http2SettingsFrame:
+					if frame.IsAck() {
+						fmt.Printf("Test case PASSED! \n")
+						Result.SettingsACK = true
+						Done = true
+					}
+				case *http2GoAwayFrame:
 					fmt.Printf("Test case FAILED! \n")
+					Result.SettingsACK = false
+					Done = true
 				}
-			}
 
-		case 	NonZeroIdentPingFrameTestCase,
-			RST_FRAMEWith0x0StreamIdentTestCase,
-			DataFrameWith0x0StreamIdentTestCase,
-			ZeroFlowControlWindowIncrementTestCase,
-			GoAwayWithNonZeroStreamIdentTestCase,
-			PrefaceTestCase:
+			case DiscardingUnknownFramesTestCase:
 
-			switch frame := f.(type) {
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
+				if err != nil {
+					opErr, ok := err.(*net.OpError)
+					if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
+						fmt.Printf("Test case FAILED! \n")
+						Result.DiscardingUnknownFrame = false
+						Done = true
+					}
+				}
+
+				switch frame := f.(type) {
+				case *http2PingFrame:
+					if frame.http2FrameHeader.Flags.Has(http2FlagPingAck) {
+						fmt.Printf("Test case PASSED! \n")
+						Result.DiscardingUnknownFrame = true
+						Done = true
+					}
+				case *http2GoAwayFrame:
+					fmt.Printf("Test case FAILED! \n ")
+					Result.DiscardingUnknownFrame = false
+					Done = true
+				}
+
+			case CloseConnAfterGoAwayFrameTestCase:
+
+				if err != nil {
+					opErr, ok := err.(*net.OpError)
+					if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
+						if goaway {
+							fmt.Printf("Test case PASSED! \n")
+							Result.CloseConnAfterGoAway = true
+							Done = true
+						} else {
+							fmt.Printf("Test case FAILED! \n")
+							Result.CloseConnAfterGoAway = false
+							Done = true
+						}
+					}
+				}
+				switch frame := f.(type) {
+				case *http2GoAwayFrame:
+					if frame.ErrCode == http2ErrCodeProtocol {
+						goaway = true
+					}
+				}
+
+			case PingFrameWithLengthDiffFromEightTestCase:
+
+				switch frame := f.(type) {
+				case *http2GoAwayFrame:
+					if frame.ErrCode == http2ErrCodeFrameSize {
+						fmt.Printf("Test case PASSED! \n")
+						Result.PingFrameWithNonEightLength = true
+						Done = true
+					} else {
+						fmt.Printf("Test case FAILED! \n")
+						Result.PingFrameWithNonEightLength = false
+						Done = true
+					}
+				}
+
+			case NonZeroIdentPingFrameTestCase,
+				RST_FRAMEWith0x0StreamIdentTestCase,
+				DataFrameWith0x0StreamIdentTestCase,
+				ZeroFlowControlWindowIncrementTestCase,
+				GoAwayWithNonZeroStreamIdentTestCase,
+				PrefaceTestCase:
+
+				switch frame := f.(type) {
+				case *http2GoAwayFrame:
+					if frame.ErrCode == http2ErrCodeProtocol {
+						fmt.Printf("Test case PASSED! \n")
+						switch TestNo {
+
+						case NonZeroIdentPingFrameTestCase:
+							Result.NonZeroIdentPingFrame = true
+						case RST_FRAMEWith0x0StreamIdentTestCase:
+							Result.RST_FRAMEWith0x0StreamIdent = true
+						case DataFrameWith0x0StreamIdentTestCase:
+							Result.DataFrameWith0x0StreamIdent = true
+						case ZeroFlowControlWindowIncrementTestCase:
+							Result.ZeroFlowControlWindowInc = true
+						case GoAwayWithNonZeroStreamIdentTestCase:
+							Result.GoAwayWithNonZeroStreamIdent = true
+						case PrefaceTestCase:
+							Result.Preface = true
+						}
+
+						Done = true
+
+					} else {
+						fmt.Printf("Test case FAILED! \n")
+
+						switch TestNo {
+
+						case NonZeroIdentPingFrameTestCase:
+							Result.NonZeroIdentPingFrame = false
+						case RST_FRAMEWith0x0StreamIdentTestCase:
+							Result.RST_FRAMEWith0x0StreamIdent = false
+						case DataFrameWith0x0StreamIdentTestCase:
+							Result.DataFrameWith0x0StreamIdent = false
+						case ZeroFlowControlWindowIncrementTestCase:
+							Result.ZeroFlowControlWindowInc = false
+						case GoAwayWithNonZeroStreamIdentTestCase:
+							Result.GoAwayWithNonZeroStreamIdent = false
+						case PrefaceTestCase:
+							Result.Preface = false
+						}
+						Done = true
+					}
+				}
+
+			case InvalidHeaderTestCase:
+
+				switch frame := f.(type) {
+
+				case *http2GoAwayFrame:
+					if frame.ErrCode == http2ErrCodeCompression {
+						fmt.Printf("Test case PASSED! \n")
+						Result.InvalidHeader = true
+						Done = true
+					} else {
+						fmt.Printf("Test case FAILED! \n")
+						Result.InvalidHeader = false
+						Done = true
+					}
+
+				}
+
+			case IllegalRST_STREAMFrameWhileIdleTestCase:
+
+				switch frame := f.(type) {
+
+				case *http2GoAwayFrame:
+					if frame.ErrCode == http2ErrCodeProtocol {
+						fmt.Printf("Test case PASSED! \n")
+						Result.IllegalRST_STREAMWhileIdle = true
+						Done = true
+					} else {
+						fmt.Printf("Test case FAILED! \n")
+						Result.IllegalRST_STREAMWhileIdle = false
+						Done = true
+					}
+				case *http2RSTStreamFrame:
+					fmt.Printf("Seems that it passed! \n")
+					Done = true
+				}
+
+
+			case PingFrameReplyTestCase:
+
+				if err != nil {
+					opErr, ok := err.(*net.OpError)
+					if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
+						fmt.Printf("Test case FAILED! \n")
+						Result.PingFrameReply = false
+						Done = true
+					}
+				}
+
+				switch frame := f.(type) {
+				case *http2PingFrame:
+					if frame.http2FrameHeader.Flags.Has(http2FlagPingAck) && frame.Data == SentData {
+						fmt.Printf("Test case PASSED! \n")
+						Result.PingFrameReply = true
+						Done = true
+					}
+				case *http2GoAwayFrame:
 					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-		case InvalidHeaderTestCase:
-
-			switch frame := f.(type) {
-
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeCompression {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
+					Result.PingFrameReply = false
+					Done = true
 				}
 
 			}
-
-		case IllegalRST_STREAMFrameWhileIdleTestCase:
-
-			switch frame := f.(type) {
-
-			case *http2GoAwayFrame:
-				if frame.ErrCode == http2ErrCodeProtocol {
-					fmt.Printf("Test case PASSED! \n")
-				} else {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			case *http2RSTStreamFrame:
-				fmt.Printf("Seems that it passed! \n")
-			}
-
-
-		case PingFrameReplyTestCase:
-
-			if err != nil {
-				opErr, ok := err.(*net.OpError)
-				if err == io.EOF || (ok && opErr.Err == syscall.ECONNRESET) {
-					fmt.Printf("Test case FAILED! \n")
-				}
-			}
-
-			switch frame := f.(type) {
-			case *http2PingFrame:
-				if frame.http2FrameHeader.Flags.Has(http2FlagPingAck) && frame.Data == SentData {
-					fmt.Printf("Test case PASSED! \n")
-				}
-			case *http2GoAwayFrame:
-				fmt.Printf("Test case FAILED! \n")
-			}
-
 		}
 
 		select {
@@ -3679,7 +3775,7 @@ func (sc *http2serverConn) processFrameFromReader(res http2readFrameResult) bool
 		return true
 	case http2ConnectionError:
 		if TestNo != SettingsACKTestCase {
-			sc.logf("http2: server connection error from %v: %v", sc.conn.RemoteAddr(), ev)
+			//sc.logf("http2: server connection error from %v: %v", sc.conn.RemoteAddr(), ev)
 			sc.goAway(http2ErrCode(ev))
 			return true
 		} else {

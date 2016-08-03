@@ -1,16 +1,17 @@
 package main
 
 import (
-	"io"
 	"bytes"
 	"time"
 	"h2specd"
 	"net"
 	"fmt"
 	"golang.org/x/net/http2/hpack"
+	"html/template"
 )
 
 const (
+	MAIN_PORT	 = ":2443"
 	SETUP_PORT       = ":443"
 	RUNNING_PORT	 = ":1443"
 	KEY   		 = "./localhost.key"
@@ -18,17 +19,19 @@ const (
 	RUN_URL 	 = "https://localhost:1443/RUN_TEST"
 )
 
-var conn net.Conn
+var conn 			net.Conn
+var SetupServer		 	*h2specd.Server
+var RunningServer 		*h2specd.Server
 
-func switchManager(w h2specd.ResponseWriter, r *h2specd.Request) {
+func switchToRunningManager(w h2specd.ResponseWriter, r *h2specd.Request) {
 	fmt.Printf("Running test case... ")
 	h2specd.RedirectHandler(RUN_URL, h2specd.StatusSeeOther).ServeHTTP(w, r)
-	h2specd.ListenerForServer.Close()
+	h2specd.ListenerForTestServer.Close()
 }
 
-func printAddress(sectionNo string) {
+func getAddress(sectionNo string) string {
 
-	fmt.Printf("https://localhost:443/" + sectionNo + "\n")
+	return "https://localhost:443/" + sectionNo
 
 }
 
@@ -49,10 +52,36 @@ func runTestCase(w h2specd.ResponseWriter, r *h2specd.Request) {
 	if h2specd.TestNo == h2specd.InvalidHeaderTestCase {
 		fmt.Fprintf(conn, "\x00\x00\x01\x01\x05\x00\x00\x00\x01\x40")
 	}
+	//h2specd.RedirectHandler("https://localhost:2443/", h2specd.StatusSeeOther).ServeHTTP(w, r)
 }
 
+var mainTemplate *template.Template
+var mainWriter h2specd.ResponseWriter
+
 func hello(w h2specd.ResponseWriter, r *h2specd.Request) {
-	io.WriteString(w, "Hello world! :)")
+	//io.WriteString(w, "Hello world! :)")
+
+	//t := template.New("fieldname example")
+	//t, _ = t.Parse("hello {{.UserName}}!")
+	//p := Person{UserName: "Astaxie"}
+	//t.Execute(w, p)
+
+	//go runTest()
+	//
+	//time.Sleep(2 * time.Second)
+
+	//s1, _ := template.ParseFiles("header.tmpl", "content.tmpl", "footer.tmpl")
+	//s1.ExecuteTemplate(w, "header", nil)
+	//s1.ExecuteTemplate(w, "content", nil)
+	//s1.ExecuteTemplate(w, "footer", nil)
+
+	mainTemplate, _ = template.ParseFiles("html_file.tmpl")
+	mainTemplate.Execute(w, h2specd.Result)
+
+	//fmt.Printf("enter:..\n")
+	//time.Sleep(2 * time.Second)
+	//h2specd.Redirect(w, r, "https://localhost:443/3.5", h2specd.StatusSeeOther)
+	//for !h2specd.Done {}
 }
 
 // 3.5
@@ -60,7 +89,7 @@ func testCasePreface(w h2specd.ResponseWriter, r *h2specd.Request) {
 
 	fmt.Printf("Testing if invalid preface is handled correctly: \n")
 	h2specd.TestNo = h2specd.PrefaceTestCase
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 4.3
@@ -68,7 +97,8 @@ func testCaseInvalidHeaderBlock(w h2specd.ResponseWriter, r *h2specd.Request) {
 
 	fmt.Printf("Testing how it handles an invalid header: \n")
 	h2specd.TestNo = h2specd.InvalidHeaderTestCase
-	switchManager(w, r)
+	fmt.Fprintf(conn, "\x00\x00\x01\x01\x05\x00\x00\x00\x01\x40")
+	switchToRunningManager(w, r)
 
 }
 
@@ -78,7 +108,7 @@ func testCaseIllegalFrameSentWhileIdle(w h2specd.ResponseWriter,
 
 	fmt.Printf("Testing how it handles an RST_STREAM frame while IDLE: \n")
 	h2specd.TestNo = h2specd.IllegalRST_STREAMFrameWhileIdleTestCase
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 5.3
@@ -101,11 +131,11 @@ func testCaseGoAwayFrameFollowedByClosedConnection(w h2specd.ResponseWriter,
 						   r *h2specd.Request) {
 
 	fmt.Printf("Testing if client closes connection after sending GO AWAY" +
-		   " away frame: \n")
+		   " frame: \n")
 	h2specd.TestNo = h2specd.CloseConnAfterGoAwayFrameTestCase
 	fmt.Fprintf(conn, "\x00\x00\x08\x06\x00\x00\x00\x00\x03") // PING frame with invalid stream ID
 	fmt.Fprintf(conn, "\x00\x00\x00\x00\x00\x00\x00\x00")
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 5.5
@@ -125,7 +155,7 @@ func testCaseDiscardingUnknownFrames(w h2specd.ResponseWriter,
 	// been processed and ignored.
 	data := [8]byte{'h', '2', 's', 'p', 'e', 'c'}
 	h2specd.ServerConn.Framer().WritePing(false, data)
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 
 }
 
@@ -133,22 +163,23 @@ func testCaseDiscardingUnknownFrames(w h2specd.ResponseWriter,
 func testCaseDataFrameWith0x0StreamIndentifier(w h2specd.ResponseWriter,
 					       r *h2specd.Request) {
 
-	fmt.Printf("Testing client's response to data frame with 0x0 " +
+	fmt.Printf("Testing the client's response to data frame with 0x0 " +
 	 	   "stream identifier: \n")
+	time.Sleep(2 * time.Second)
 	h2specd.TestNo = h2specd.DataFrameWith0x0StreamIdentTestCase
 	h2specd.ServerConn.Framer().WriteData(0, true, []byte("test"))
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 6.4.1
 func testCaseRST_STREAMFrame0x0Ident(w h2specd.ResponseWriter,
 				     r *h2specd.Request) {
 
-	fmt.Printf("Testing if client responds with PROTOCOL_ERROR to a " +
+	fmt.Printf("Testing if the client responds with PROTOCOL_ERROR to a " +
 		   "RST_FRAME with 0x0 stream identifier: \n")
 	h2specd.TestNo = h2specd.RST_FRAMEWith0x0StreamIdentTestCase
 	h2specd.ServerConn.Framer().WriteRSTStream(0, h2specd.Http2ErrCodeCancel)
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 
 }
 
@@ -192,7 +223,7 @@ func testCaseIllegalSizeRST_STREAM(w h2specd.ResponseWriter,
 // 6.5.1
 func testCaseSettingsAck(w h2specd.ResponseWriter, r *h2specd.Request) {
 
-	fmt.Printf("Testing if client sends Settings with ACK after receiving" +
+	fmt.Printf("Testing if the client sends Settings with ACK after receiving" +
 		   " a Setting Frame: \n")
 
 	h2specd.TestNo = h2specd.SettingsACKTestCase
@@ -202,7 +233,7 @@ func testCaseSettingsAck(w h2specd.ResponseWriter, r *h2specd.Request) {
 		h2specd.Http2Setting{h2specd.Http2SettingHeaderTableSize, ^uint32(0)},
 	}
 	h2specd.ServerConn.Framer().WriteSettings(settings...)
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 
 }
 
@@ -226,7 +257,7 @@ func testCaseReceivingPingFrame(w h2specd.ResponseWriter, r *h2specd.Request) {
 	data := [8]byte{'h', '2', 's', 'p', 'e', 'c'}
 	h2specd.SentData = data
 	h2specd.ServerConn.Framer().WritePing(false, data)
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 6.7.2
@@ -238,19 +269,19 @@ func testCasePingWithNonZeroIdent(w h2specd.ResponseWriter,
 	h2specd.TestNo = h2specd.NonZeroIdentPingFrameTestCase
 	fmt.Fprintf(conn, "\x00\x00\x08\x06\x00\x00\x00\x00\x03")
 	fmt.Fprintf(conn, "\x00\x00\x00\x00\x00\x00\x00\x00")
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 }
 
 // 6.7.3
 func testCasePingWithLengthDiffFromEight(w h2specd.ResponseWriter,
 					 r *h2specd.Request) {
 
-	fmt.Printf("Testing client's reaction to a Ping Frame that has the " +
+	fmt.Printf("Testing the client's reaction to a Ping Frame that has the " +
 		   "length field different from 8: \n")
 	h2specd.TestNo = h2specd.PingFrameWithLengthDiffFromEightTestCase
 	fmt.Fprintf(conn, "\x00\x00\x06\x06\x00\x00\x00\x00\x00")
 	fmt.Fprintf(conn, "\x00\x00\x00\x00\x00\x00")
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 
 }
 
@@ -258,24 +289,51 @@ func testCasePingWithLengthDiffFromEight(w h2specd.ResponseWriter,
 func testCaseGoAwayWithStreamIdentNonZero(w h2specd.ResponseWriter,
 					  r *h2specd.Request) {
 
-	fmt.Printf("Testing client by sending a Go Frame with a non zero " +
+	fmt.Printf("Testing the client by sending a Go Frame with a non zero " +
 		   "stream identifier: \n")
 	h2specd.TestNo = h2specd.GoAwayWithNonZeroStreamIdentTestCase
 	fmt.Fprintf(conn, "\x00\x00\x08\x07\x00\x00\x00\x00\x03")
 	fmt.Fprintf(conn, "\x00\x00\x00\x00\x00\x00\x00\x00")
-	switchManager(w, r)
+	switchToRunningManager(w, r)
 
 }
 
-// 6.9
+// 6.9.1
 func testCaseWindowFrameWithZeroFlowControlWindowInc(w h2specd.ResponseWriter,
 						     r *h2specd.Request) {
 
-	fmt.Printf("Testing client by sending Window Frame with a flow " +
+	fmt.Printf("Testing the client by sending Window Frame with a flow " +
 		   "control window increment of zero: \n")
 	h2specd.TestNo = h2specd.ZeroFlowControlWindowIncrementTestCase
 	h2specd.ServerConn.Framer().WriteWindowUpdate(0, 0)
-	switchManager(w, r)
+	switchToRunningManager(w, r)
+
+}
+
+// 6.9.2 -> Receiving PROTOCOL_ERROR instead of FRAME_SIZE_ERROR.
+func testCaseWindowFrameWithWrongLength(w h2specd.ResponseWriter,
+					r *h2specd.Request) {
+
+	fmt.Printf("Testing client by sending Window Frame with a length " +
+		   "other than a multiple of 4 octets: \n")
+
+	fmt.Fprintf(conn, "\x00\x00\x03\x08\x00\x00\x00\x00\x00")
+	fmt.Fprintf(conn, "\x00\x00\x01")
+
+}
+
+// 6.9.3
+func testCaseInitialSettingsExceedsMaximumSize(w h2specd.ResponseWriter,
+					       r *h2specd.Request) {
+
+	fmt.Printf("Tests the client by sending a " +
+		   "SETTINGS_INITIAL_WINDOW_SIZE settings with an exceeded " +
+		   "maximum window size value: \n")
+
+	fmt.Fprintf(conn, "\x00\x00\x06\x04\x00\x00\x00\x00\x00")
+	fmt.Fprintf(conn, "\x00\x04\x80\x00\x00\x00")
+
+
 
 }
 
@@ -283,63 +341,124 @@ func main() {
 
 	fmt.Printf("The following addresses are available: \n")
 
-	h2specd.HandleFunc("/", hello)
-	h2specd.HandleFunc("/3.5", testCasePreface) // checked √
-	printAddress("3.5")
-	h2specd.HandleFunc("/4.3", testCaseInvalidHeaderBlock) // checked √
-	printAddress("4.3")
-	h2specd.HandleFunc("/5.1", testCaseIllegalFrameSentWhileIdle)
-	//printAddress("5.1")
-	h2specd.HandleFunc("/5.3", testCaseSelfDependingPriorityFrame)
-	//printAddress("5.3")
-	h2specd.HandleFunc("/5.4", testCaseGoAwayFrameFollowedByClosedConnection) // checked √
-	printAddress("5.4")
-	h2specd.HandleFunc("/5.5", testCaseDiscardingUnknownFrames) // checked √
-	printAddress("5.5")
-	h2specd.HandleFunc("/6.1", testCaseDataFrameWith0x0StreamIndentifier) // checked √
-	printAddress("6.1")
-	h2specd.HandleFunc("/6.4.1", testCaseRST_STREAMFrame0x0Ident) // checked √
-	printAddress("6.4.1")
-	h2specd.HandleFunc("/6.4.2", testCaseIllegalSizeRST_STREAM)
-	//printAddress("6.4.2")
-	h2specd.HandleFunc("/6.5.1", testCaseSettingsAck) // checked √
-	printAddress("6.5.1")
-	h2specd.HandleFunc("/6.5.2", testCaseNonZeroLengthAckSettingFrame)
-	//printAddress("6.5.2")
-	h2specd.HandleFunc("/6.7.1", testCaseReceivingPingFrame) // checked √
-	printAddress("6.7.1")
-	h2specd.HandleFunc("/6.7.2", testCasePingWithNonZeroIdent) // checked √
-	printAddress("6.7.2")
-	h2specd.HandleFunc("/6.7.3", testCasePingWithLengthDiffFromEight) // checked √
-	printAddress("6.7.3")
-	h2specd.HandleFunc("/6.8", testCaseGoAwayWithStreamIdentNonZero) // checked √
-	printAddress("6.8")
-	h2specd.HandleFunc("/6.9", testCaseWindowFrameWithZeroFlowControlWindowInc) // checked √
-	printAddress("6.9")
-	h2specd.HandleFunc("/RUN_TEST", runTestCase)
+	mainMux := h2specd.NewServeMux()
 
-	s := &h2specd.Server{
+	mainMux.HandleFunc("/", hello)
+
+	testMux := h2specd.NewServeMux()
+
+	testMux.HandleFunc("/3.5", testCasePreface) // checked √
+	fmt.Printf(getAddress("3.5") + "\n")
+	testMux.HandleFunc("/4.3", testCaseInvalidHeaderBlock) // checked √
+	fmt.Printf(getAddress("4.3") + "\n")
+	testMux.HandleFunc("/5.1", testCaseIllegalFrameSentWhileIdle)
+	//printAddress("5.1") + "\n"
+	testMux.HandleFunc("/5.3", testCaseSelfDependingPriorityFrame)
+	//printAddress("5.3") + "\n"
+	testMux.HandleFunc("/5.4", testCaseGoAwayFrameFollowedByClosedConnection) // checked √
+	fmt.Printf(getAddress("5.4") + "\n")
+	testMux.HandleFunc("/5.5", testCaseDiscardingUnknownFrames) // checked √
+	fmt.Printf(getAddress("5.5") + "\n")
+	testMux.HandleFunc("/6.1", testCaseDataFrameWith0x0StreamIndentifier) // checked √
+	fmt.Printf(getAddress("6.1") + "\n")
+	testMux.HandleFunc("/6.4.1", testCaseRST_STREAMFrame0x0Ident) // checked √
+	fmt.Printf(getAddress("6.4.1") + "\n")
+	testMux.HandleFunc("/6.4.2", testCaseIllegalSizeRST_STREAM)
+	//printAddress("6.4.2") + "\n"
+	testMux.HandleFunc("/6.5.1", testCaseSettingsAck) // checked √
+	fmt.Printf(getAddress("6.5.1") + "\n")
+	testMux.HandleFunc("/6.5.2", testCaseNonZeroLengthAckSettingFrame)
+	//printAddress("6.5.2") + "\n"
+	testMux.HandleFunc("/6.7.1", testCaseReceivingPingFrame) // checked √
+	fmt.Printf(getAddress("6.7.1") + "\n")
+	testMux.HandleFunc("/6.7.2", testCasePingWithNonZeroIdent) // checked √
+	fmt.Printf(getAddress("6.7.2") + "\n")
+	testMux.HandleFunc("/6.7.3", testCasePingWithLengthDiffFromEight) // checked √
+	fmt.Printf(getAddress("6.7.3") + "\n")
+	testMux.HandleFunc("/6.8", testCaseGoAwayWithStreamIdentNonZero) // checked √
+	fmt.Printf(getAddress("6.8") + "\n")
+	testMux.HandleFunc("/6.9.1", testCaseWindowFrameWithZeroFlowControlWindowInc) // checked √
+	fmt.Printf(getAddress("6.9.1") + "\n")
+	testMux.HandleFunc("/6.9.2", testCaseWindowFrameWithWrongLength)
+	testMux.HandleFunc("/6.9.3", testCaseInitialSettingsExceedsMaximumSize)
+	//printAddress("6.9.2") + "\n"
+	testMux.HandleFunc("/RUN_TEST", runTestCase)
+
+	mainServer := &h2specd.Server{
+		Addr:           MAIN_PORT,
+		Handler: 	mainMux,
+		ReadTimeout:    10 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
+	SetupServer = &h2specd.Server{
 		Addr:           SETUP_PORT,
+		Handler: 	testMux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 		ConnState:      ConnStateListener,
 	}
 
-	s1 := &h2specd.Server{
+	RunningServer = &h2specd.Server{
 		Addr:           RUNNING_PORT,
+		Handler: 	testMux,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 		ConnState:      ConnStateListener2,
 	}
 
+	go func() {
 
-	go s1.ListenAndServeTLS(CERT, KEY)
+		runTest()
 
-	for {
-		s.ListenAndServeTLS(CERT, KEY)
-	}
+		for {
+
+			if h2specd.Done {
+				runTest()
+			}
+		}
+
+
+	}()
+	mainServer.ListenAndServeTLS(CERT, KEY)
+
+}
+
+func runTest() {
+
+	//h2specd.HandleFunc("/auto/3.5", testCasePreface) // checked √
+	//h2specd.HandleFunc("/auto/4.3", testCaseInvalidHeaderBlock) // checked √
+	//h2specd.HandleFunc("/auto/5.1", testCaseIllegalFrameSentWhileIdle)
+	//h2specd.HandleFunc("/auto/5.3", testCaseSelfDependingPriorityFrame)
+	//h2specd.HandleFunc("/auto/5.4", testCaseGoAwayFrameFollowedByClosedConnection) // checked √
+	//h2specd.HandleFunc("/auto/5.5", testCaseDiscardingUnknownFrames) // checked √
+	//h2specd.HandleFunc("/auto/6.1", testCaseDataFrameWith0x0StreamIndentifier) // checked √
+	//h2specd.HandleFunc("/auto/6.4.1", testCaseRST_STREAMFrame0x0Ident) // checked √
+	//h2specd.HandleFunc("/auto/6.4.2", testCaseIllegalSizeRST_STREAM)
+	//h2specd.HandleFunc("/auto/6.5.1", testCaseSettingsAck) // checked √
+	//h2specd.HandleFunc("/auto/6.5.2", testCaseNonZeroLengthAckSettingFrame)
+	//h2specd.HandleFunc("/auto/6.7.1", testCaseReceivingPingFrame) // checked √
+	//h2specd.HandleFunc("/auto/6.7.2", testCasePingWithNonZeroIdent) // checked √
+	//h2specd.HandleFunc("/auto/6.7.3", testCasePingWithLengthDiffFromEight) // checked √
+	//h2specd.HandleFunc("/auto/6.8", testCaseGoAwayWithStreamIdentNonZero) // checked √
+	//h2specd.HandleFunc("/auto/6.9.1", testCaseWindowFrameWithZeroFlowControlWindowInc) // checked √
+	//h2specd.HandleFunc("/auto/6.9.2", testCaseWindowFrameWithWrongLength)
+	//h2specd.HandleFunc("/auto/RUN_TEST", runTestCase)
+
+
+	h2specd.Done = false
+
+	go RunningServer.ListenAndServeTLS(CERT, KEY)
+	SetupServer.ListenAndServeTLS(CERT, KEY)
+
+	for !h2specd.Done {}
+	h2specd.TestNo = h2specd.Default
+	conn.Close()
+	h2specd.ListenerForRunningServer.Close()
+	fmt.Printf("DONE! \n")
 }
 
 func ConnStateListener(c net.Conn, cs h2specd.ConnState) {

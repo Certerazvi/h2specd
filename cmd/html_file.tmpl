@@ -1,0 +1,65 @@
+<html>
+<head>
+    <title>H2SPECD</title>
+</head>
+<body>
+
+<script>
+    var testCount = 0;
+</script>
+
+<h1>Available Tests</h1>
+<a id="1"  href="https://localhost:443/3.5"> 3.5 </a>  &emsp;&ensp;&ensp; -> Testing if invalid preface is handled correctly. {{if .Preface}} &#x2713; <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="2"  href="https://localhost:443/4.3"> 4.3 </a>  &emsp;&ensp;&ensp; -> Testing how it handles an invalid header. {{if .InvalidHeader}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="3"  href="https://localhost:443/5.4"> 5.4 </a>  &emsp;&ensp;&ensp; -> Testing if client closes connection after sending GOAWAY frame. {{if .CloseConnAfterGoAway}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="4"  href="https://localhost:443/5.5"> 5.5 </a>  &emsp;&ensp;&ensp; -> Testing if client discards unknown frames. {{if .DiscardingUnknownFrame}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="5"  href="https://localhost:443/6.1"> 6.1 </a>  &emsp;&ensp;&ensp; -> Testing the client's response to a data frame with 0x0 stream identifier. {{if .DataFrameWith0x0StreamIdent}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="6"  href="https://localhost:443/6.4.1"> 6.4.1 </a> &emsp;&ensp;-> Testing if the client responds with PROTOCOL_ERROR to a RST_FRAME with 0x0 stream identifier. {{if .RST_FRAMEWith0x0StreamIdent}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="7"  href="https://localhost:443/6.5.1"> 6.5.1 </a> &emsp;&ensp;-> Testing if the client sends Settings with ACK after receiving a Settings Frame. {{if .SettingsACK}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="8"  href="https://localhost:443/6.7.1"> 6.7.1 </a> &emsp;&ensp;-> Testing the client by checking the response to a PING frame. {{if .PingFrameReply}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="9"  href="https://localhost:443/6.7.2"> 6.7.2 </a> &emsp;&ensp;-> Testing the client by sending a Ping Frame with a non-zero stream identifier. {{if .NonZeroIdentPingFrame}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="10" href="https://localhost:443/6.7.3"> 6.7.3 </a> &emsp;&ensp;-> Testing the client's reaction to a Ping Frame that has the length field different from 8. {{if .PingFrameWithNonEightLength}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="11" href="https://localhost:443/6.8"> 6.8 </a>  &emsp;&emsp; -> Testing the client by sending a Go Frame with a non zero stream identifier. {{if .GoAwayWithNonZeroStreamIdent}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/>
+<a id="12" href="https://localhost:443/6.9.1"> 6.9.1 </a> &emsp;&ensp;-> Testing the client by sending Window Frame with a flow control window increment of zero. {{if .ZeroFlowControlWindowInc}} &#x2713;  <script> testCount = testCount + 1 </script> {{else}} &#x2717; {{end}} <br/> <br/> <br/>
+
+<button id="auto" onclick="myFunction()">Auto Test All!</button>
+
+</body>
+</html>
+
+<script>
+
+    document.write("Passed " + testCount + "/12 tests!");
+
+function myFunction() {
+
+    var i = 2;
+    var myWindow;
+    var mainWindow = window.self;
+    var check = function(){
+
+        if(i > 2) {
+            myWindow.close();
+         }
+
+        if(i == 13){
+            alert("Auto Testing Finished!");
+            window.location.reload(1);
+            testCount = 0;
+            return;
+        }
+        else {
+            var link = document.getElementById(i.toString()).getAttribute("href");
+            myWindow = window.open(link);
+            //window.location.href = link;
+            setTimeout(check, 5000); // check again in a second
+            i = i + 1;
+            //myWindow.close();
+        }
+    }
+
+    check();
+
+}
+
+</script>
