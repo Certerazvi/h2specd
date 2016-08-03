@@ -15,11 +15,11 @@ Can be found in the [Releases section](https://github.com/Certerazvi/h2specd/rel
 
     % sudo ./h2specd
 
-**c)** Once the program is running you can access the localhost through your browser and enter “https://localhost:443/XXX” as the address, where XXX represents the section number (based from the RFC 7540 specification) that you want to check in your browser.
+**c)** Once the program is running you can access the localhost through your browser and enter “https://localhost:2443” as the address. Following this, links to different tests will be displayed along with short descriptions. You can either click on one of them to individually test it or you can click the "Auto Test" button to run all the tests (with the exception of the first one which still has a few issues).
 
-**d)** After following the above mentioned guidelines a short description will appear about the test chosen followed by a PASSED or FAILED notification. Again, this will only appear in your terminal.
+**d)** After following the above, within the terminal, information about the outcome of the test will appear. Moreover, in the browser, after autotesting, ticks should be displayed in front of the tests that passed and crosses in front of the ones that did not.
 
-\*\* At the moment it is necessary to **force close** and **restart** the binary file in order to test other cases.
+\*\* In case that a test blocks while running, it is recommended to force close and restart the binary file.
 
 ### ISSUES:
 
