@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"golang.org/x/net/http2/hpack"
 	"html/template"
+	"flag"
 )
 
+var MAIN_PORT string
+
 const (
-	MAIN_PORT	 = ":2443"
 	SETUP_PORT       = ":443"
 	RUNNING_PORT	 = ":1443"
 	KEY   		 = "./localhost.key"
@@ -60,7 +62,6 @@ func runTestCase(w h2specd.ResponseWriter, r *h2specd.Request) {
 }
 
 var mainTemplate *template.Template
-var mainWriter h2specd.ResponseWriter
 
 func hello(w h2specd.ResponseWriter, r *h2specd.Request) {
 	//io.WriteString(w, "Hello world! :)")
@@ -343,8 +344,20 @@ func testCaseInitialSettingsExceedsMaximumSize(w h2specd.ResponseWriter,
 
 func main() {
 
+
+	portPtr := flag.String("port", "2443", "the port number used for the" +
+			       " main page, but excluding '443' and '1443'")
+
+	flag.Parse()
+
+	if *portPtr == "443" || *portPtr == "1443" {
+		panic("The port cannot be assigned!")
+	}
+
+	MAIN_PORT = ":" + *portPtr
+
 	fmt.Printf("The address for testing is: \n")
-	fmt.Printf("https://localhost:" + MAIN_PORT + "\n")
+	fmt.Printf("https://localhost" + MAIN_PORT + "\n")
 
 	mainMux := h2specd.NewServeMux()
 
