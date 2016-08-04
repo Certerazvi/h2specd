@@ -17,9 +17,9 @@ Can be found in the [Releases section](https://github.com/Certerazvi/h2specd/rel
     or
     % sudo ./h2specd -port <PORT>
 
-**c)** Once the program is running you can access the localhost through your browser and enter “https://localhost:2443/” as the address. Following this, links to different tests will be displayed along with short descriptions. You can either click on one of them to individually test it or you can click the "Auto Test" button to run all the tests (with the exception of the first one which still has a few issues).
+**c)** Once the program is running you can access the localhost through your browser and enter “https://localhost:<PORT>/” as the address, where the PORT is the one you chose or 2443 by default. Following this, links to different tests will be displayed along with short descriptions. You can either click on one of them to individually test it or you can click the "Auto Test" button to run all the tests (with the exception of the first one which still has a few issues).
 
-    https://localhost:2443/
+    https://localhost:<PORT>/
 
 **d)** After following the above, within the terminal, information about the outcome of the test will appear. Moreover, in the browser, after autotesting, ticks should be displayed in front of the tests that passed and crosses in front of the ones that did not.
 
