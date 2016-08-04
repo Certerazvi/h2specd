@@ -25,6 +25,8 @@ var RunningServer 		*h2specd.Server
 
 func switchToRunningManager(w h2specd.ResponseWriter, r *h2specd.Request) {
 	fmt.Printf("Running test case... ")
+	//mainTemplate, _ = template.ParseFiles("test_html.tmpl")
+	//mainTemplate.Execute(w, nil)
 	h2specd.RedirectHandler(RUN_URL, h2specd.StatusSeeOther).ServeHTTP(w, r)
 	h2specd.ListenerForTestServer.Close()
 }
@@ -49,6 +51,8 @@ func DummyData(num int) string {
 
 func runTestCase(w h2specd.ResponseWriter, r *h2specd.Request) {
 
+	//mainTemplate, _ = template.ParseFiles("test_html.tmpl")
+	//mainTemplate.Execute(w, nil)
 	if h2specd.TestNo == h2specd.InvalidHeaderTestCase {
 		fmt.Fprintf(conn, "\x00\x00\x01\x01\x05\x00\x00\x00\x01\x40")
 	}
@@ -339,7 +343,8 @@ func testCaseInitialSettingsExceedsMaximumSize(w h2specd.ResponseWriter,
 
 func main() {
 
-	fmt.Printf("The following addresses are available: \n")
+	fmt.Printf("The address for testing is: \n")
+	fmt.Printf("https://localhost:" + MAIN_PORT + "\n")
 
 	mainMux := h2specd.NewServeMux()
 
@@ -348,40 +353,23 @@ func main() {
 	testMux := h2specd.NewServeMux()
 
 	testMux.HandleFunc("/3.5", testCasePreface) // checked √
-	fmt.Printf(getAddress("3.5") + "\n")
 	testMux.HandleFunc("/4.3", testCaseInvalidHeaderBlock) // checked √
-	fmt.Printf(getAddress("4.3") + "\n")
 	testMux.HandleFunc("/5.1", testCaseIllegalFrameSentWhileIdle)
-	//printAddress("5.1") + "\n"
 	testMux.HandleFunc("/5.3", testCaseSelfDependingPriorityFrame)
-	//printAddress("5.3") + "\n"
 	testMux.HandleFunc("/5.4", testCaseGoAwayFrameFollowedByClosedConnection) // checked √
-	fmt.Printf(getAddress("5.4") + "\n")
 	testMux.HandleFunc("/5.5", testCaseDiscardingUnknownFrames) // checked √
-	fmt.Printf(getAddress("5.5") + "\n")
 	testMux.HandleFunc("/6.1", testCaseDataFrameWith0x0StreamIndentifier) // checked √
-	fmt.Printf(getAddress("6.1") + "\n")
 	testMux.HandleFunc("/6.4.1", testCaseRST_STREAMFrame0x0Ident) // checked √
-	fmt.Printf(getAddress("6.4.1") + "\n")
 	testMux.HandleFunc("/6.4.2", testCaseIllegalSizeRST_STREAM)
-	//printAddress("6.4.2") + "\n"
 	testMux.HandleFunc("/6.5.1", testCaseSettingsAck) // checked √
-	fmt.Printf(getAddress("6.5.1") + "\n")
 	testMux.HandleFunc("/6.5.2", testCaseNonZeroLengthAckSettingFrame)
-	//printAddress("6.5.2") + "\n"
 	testMux.HandleFunc("/6.7.1", testCaseReceivingPingFrame) // checked √
-	fmt.Printf(getAddress("6.7.1") + "\n")
 	testMux.HandleFunc("/6.7.2", testCasePingWithNonZeroIdent) // checked √
-	fmt.Printf(getAddress("6.7.2") + "\n")
 	testMux.HandleFunc("/6.7.3", testCasePingWithLengthDiffFromEight) // checked √
-	fmt.Printf(getAddress("6.7.3") + "\n")
 	testMux.HandleFunc("/6.8", testCaseGoAwayWithStreamIdentNonZero) // checked √
-	fmt.Printf(getAddress("6.8") + "\n")
 	testMux.HandleFunc("/6.9.1", testCaseWindowFrameWithZeroFlowControlWindowInc) // checked √
-	fmt.Printf(getAddress("6.9.1") + "\n")
 	testMux.HandleFunc("/6.9.2", testCaseWindowFrameWithWrongLength)
 	testMux.HandleFunc("/6.9.3", testCaseInitialSettingsExceedsMaximumSize)
-	//printAddress("6.9.2") + "\n"
 	testMux.HandleFunc("/RUN_TEST", runTestCase)
 
 	mainServer := &h2specd.Server{
@@ -424,7 +412,6 @@ func main() {
 
 	}()
 	mainServer.ListenAndServeTLS(CERT, KEY)
-
 }
 
 func runTest() {

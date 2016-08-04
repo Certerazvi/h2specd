@@ -2279,6 +2279,7 @@ func (srv *Server) ListenAndServeTLS(certFile, keyFile string) error {
 
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
+		panic("The server cannot listen for connections. Make sure to have root permissions (use sudo)!!! \n")
 		return err
 	}
 
