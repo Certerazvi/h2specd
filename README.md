@@ -11,9 +11,11 @@ Can be found in the [Releases section](https://github.com/Certerazvi/h2specd/rel
 
     % openssl req -x509 -newkey rsa:2048 -keyout localhost.key -out localhost.crt -days <DAYS> -nodes
 
-**b)** Currently there are no options available hence the binary file should be run as it this, through the terminal. Make sure to run the file with root permissions (this is the case because in order to listen to a port destined for https, root rights are needed). For Linux and MacOS, type:
+**b)** Currently the only option available is setting a different port number to use for the main page. The default is 2443 hence the binary file can be run as it this, through the terminal. However, be careful to **NOT** use 443 or 1443 as a custom port for this. They are already in use within the program. Moreover, make sure to run the file with root permissions (this is the case because in order to listen to a port destined for https, root rights are needed). For Linux and MacOS, type:
 
     % sudo ./h2specd
+    or
+    % sudo ./h2specd -port <PORT>
 
 **c)** Once the program is running you can access the localhost through your browser and enter “https://localhost:2443/” as the address. Following this, links to different tests will be displayed along with short descriptions. You can either click on one of them to individually test it or you can click the "Auto Test" button to run all the tests (with the exception of the first one which still has a few issues).
 
