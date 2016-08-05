@@ -39,7 +39,7 @@ function myFunction() {
     var check = function(){
 
         if(i > 2) {
-            myWindow.close();
+            //myWindow.close();
          }
 
         if(i == 13){
@@ -49,8 +49,9 @@ function myFunction() {
             return;
         }
         else {
-            var link = document.getElementById(i.toString()).getAttribute("href");
-            myWindow = window.open(link);
+            //var link = document.getElementById(i.toString()).getAttribute("href");
+            document.getElementById(i.toString()).click();
+            //myWindow = window.open(link);
             //window.location.href = link;
             setTimeout(check, 6000); // check again in a few seconds
             i = i + 1;

@@ -53,8 +53,8 @@ func DummyData(num int) string {
 
 func runTestCase(w h2specd.ResponseWriter, r *h2specd.Request) {
 
-	//mainTemplate, _ = template.ParseFiles("test_html.tmpl")
-	//mainTemplate.Execute(w, nil)
+	mainTemplate, _ = template.ParseFiles("test_html.tmpl")
+	mainTemplate.Execute(w, nil)
 	if h2specd.TestNo == h2specd.InvalidHeaderTestCase {
 		fmt.Fprintf(conn, "\x00\x00\x01\x01\x05\x00\x00\x00\x01\x40")
 	}
